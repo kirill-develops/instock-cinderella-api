@@ -1,5 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
+const { default: isEmail } = require('validator/lib/isEmail');
+const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
 const warehouseModel = require('../model/warehouse-models');
+
 
 exports.getAll = (_req, res) => {
 
@@ -20,29 +23,90 @@ exports.getAll = (_req, res) => {
   res.status(200).json(warehouseArr)
 };
 
-// POST request for creating a new warehouse
-exports.addWarehouse = (req, res) => {
-  const newWarehouse = {
-    id: uuidv4(),
-    name: req.body.name,
-    address: req.body.address,
-    city: req.body.city,
-    country: req.body.country,
-    contact: {
-      name: req.body.name,
-      position: req.body.position,
-      phone: req.body.phone,
-      email: req.body.email
-    }
+// Form validation
+const validate = (req) => {
+
+  let errorCount = 0;
+  let errors = {};
+
+  if (!req.body.name) {
+    errorCount += 1;
+    errors.name = true; 
+  }
+  if (!req.body.address) {
+    errorCount += 1;
+    errors.address = true;
+  }
+  if (!req.body.city) {
+    errorCount += 1;
+    errors.city = true;
+  }
+  if (!req.body.country) {
+    errorCount += 1;
+    errors.country = true;
+  }
+  if (!req.body.contactName) {
+    errorCount += 1;
+    errors.contactName = true;
+  }
+  if (!req.body.position) {
+    errorCount += 1;
+    errors.position = true;
+  }
+  
+  const isPhoneValid = isMobilePhone(req.body.phone, ['en-CA']);
+  console.log(isPhoneValid)
+  if (!isPhoneValid) {
+    errorCount += 1;
+    errors.phone = true;
   }
 
-  let warehouses = warehouseModel.getAll();
-  warehouses.push(newWarehouse)
+  const isEmailValid = isEmail(req.body.email);
+  console.log(isEmailValid)
+  if (!isEmailValid) {
+    errorCount += 1;
+    errors.email = true;
+  }
 
-  warehouseModel.saveAll(warehouses);
+  return {
+    errorCount, errors
+  }
+}
 
-  res.status(201).send({
-    "id": newWarehouse.id,
-    "status": "successful"
+// POST request for creating a new warehouse
+exports.addWarehouse = (req, res) => {
+  
+  const result = validate(req);
+  console.log(result);
+  if (result.errorCount === 0) {
+
+    const newWarehouse = {
+      id: uuidv4(),
+      name: req.body.warehouseName,
+      address: req.body.address,
+      city: req.body.city,
+      country: req.body.country,
+      contact: {
+        name: req.body.contactName,
+        position: req.body.position,
+        phone: req.body.phone,
+        email: req.body.email
+      }
+    }
+
+    let warehouses = warehouseModel.getAll();
+    warehouses.push(newWarehouse)
+
+    warehouseModel.saveAll(warehouses);
+
+    res.status(201).send({
+      "result": result,
+      "id": newWarehouse.id,
+      "status": "successful"
+    })
+  }
+  res.send({
+    "result": result,
+    "status": "unsuccessful"
   })
 }
