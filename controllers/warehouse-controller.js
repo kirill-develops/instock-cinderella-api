@@ -19,3 +19,12 @@ exports.getAll = (_req, res) => {
   console.log('CLIENT_RES: vidArr');
   res.status(200).json(warehouseArr)
 };
+
+exports.getById = (req, res) => {
+  const individualWarehouse = warehouseModel.getAll().find(
+    (warehouse) => warehouse.id === req.params.id);
+    res.status(200).json(individualWarehouse)
+}
+console.log('Successful warehouse retrieved')
+
+// Will need to attach the inventory to getById. If the inventory ID matches the warehouse ID, push the inventory item into the inventory array.
