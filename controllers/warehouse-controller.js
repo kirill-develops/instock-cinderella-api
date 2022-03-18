@@ -2,6 +2,9 @@ const { v4: uuidv4 } = require('uuid');
 const { default: isEmail } = require('validator/lib/isEmail');
 const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
 const warehouseModel = require('../model/warehouse-models');
+const inventoryModel = require('../model/inventory-models');
+// const fs = require("fs");
+
 
 exports.getAll = (_req, res) => {
 
@@ -128,3 +131,29 @@ exports.getById = (req, res) => {
 }
 
 
+// Delete warehouse by ID
+exports.deleteById = (req, res) => {
+  const { id } = req.params;
+  
+  // Accessing warehouse list
+  let warehouseArray = warehouseModel.getAll();
+  // Accessing inventory list
+  let inventoryArray = inventoryModel.getAll();
+  
+  const deleted = warehouseArray.find(warehouse => warehouse.id === id)
+  
+  if (!deleted) {
+    res.status(404).send({ message: "Warehouse not found" })  
+  } else {
+    
+    // Deleting warehouse details from the warehouses JSON
+    warehouseArray = warehouseArray.filter(warehouse => warehouse.id !== id)
+    warehouseModel.saveAll(warehouseArray);
+    
+    // Deleting the warehouse inventory from the inventories JSON
+    inventoryArray = inventoryArray.filter(inventory => inventory.warehouseID !== id)
+    inventoryModel.saveAll(inventoryArray);
+    }
+
+    res.status(202).send({message: "Warehouse and it's inventory deleted successfully"})
+  }

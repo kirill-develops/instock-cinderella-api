@@ -11,8 +11,6 @@ router.route('/')
 router.route('/:id')
   .get(warehouseController.getById)
 //   .put(warehouseController.editById)
-//   .delete(warehouseController.deleteById);
-
-
+  .delete(warehouseController.deleteById);
 
 module.exports = router;
