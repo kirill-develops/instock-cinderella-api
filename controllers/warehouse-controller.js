@@ -1,10 +1,13 @@
 const { v4: uuidv4 } = require('uuid');
+const fs = require("fs");
 const { default: isEmail } = require('validator/lib/isEmail');
 const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
 const warehouseModel = require('../model/warehouse-models');
 const inventoryModel = require('../model/inventory-models');
 // const fs = require("fs");
 
+
+const filePath = './data/inventories.json';
 
 exports.getAll = (_req, res) => {
 
@@ -20,8 +23,6 @@ exports.getAll = (_req, res) => {
         "contact": warehouse.contact
       }
     })
-  console.log('GET "/warehouses" success');
-  console.log('CLIENT_RES: warehouseArr');
   res.status(200).json(warehouseArr)
 };
 
@@ -33,7 +34,7 @@ const validate = (req) => {
 
   if (!req.body.name) {
     errorCount += 1;
-    errors.name = true; 
+    errors.name = true;
   }
   if (!req.body.address) {
     errorCount += 1;
@@ -55,7 +56,7 @@ const validate = (req) => {
     errorCount += 1;
     errors.position = true;
   }
-  
+
   const isPhoneValid = isMobilePhone(req.body.phone, ['en-CA']);
   console.log(isPhoneValid)
   if (!isPhoneValid) {
@@ -77,7 +78,7 @@ const validate = (req) => {
 
 // POST request for creating a new warehouse
 exports.addWarehouse = (req, res) => {
-  
+
   const result = validate(req);
   console.log(result);
   if (result.errorCount === 0) {

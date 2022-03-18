@@ -16,8 +16,6 @@ exports.getAll = (_req, res) => {
         "quantity": item.quantity
       }
     })
-  console.log('GET "/inventory" success');
-  console.log('CLIENT_RES: inventoryArr');
   res.status(200).json(inventoryArr);
 };
 
