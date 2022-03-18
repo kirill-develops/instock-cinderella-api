@@ -1,39 +1,36 @@
-const { v4: uuidv4 } = require('uuid');
-const { default: isEmail } = require('validator/lib/isEmail');
-const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
-const warehouseModel = require('../model/warehouse-models');
+const { v4: uuidv4 } = require("uuid");
+const { default: isEmail } = require("validator/lib/isEmail");
+const { default: isMobilePhone } = require("validator/lib/isMobilePhone");
+const warehouseModel = require("../model/warehouse-models");
 
 const fs = require("fs");
-const filePath = './data/inventories.json';
+const filePath = "./data/inventories.json";
 
 exports.getAll = (_req, res) => {
-
   // create modified array of essential info to send to client
-  const warehouseArr = warehouseModel.getAll()
-    .map(warehouse => {
-      return {
-        "id": warehouse.id,
-        "name": warehouse.name,
-        "address": warehouse.address,
-        "city": warehouse.city,
-        "country": warehouse.country,
-        "contact": warehouse.contact
-      }
-    })
+  const warehouseArr = warehouseModel.getAll().map((warehouse) => {
+    return {
+      id: warehouse.id,
+      name: warehouse.name,
+      address: warehouse.address,
+      city: warehouse.city,
+      country: warehouse.country,
+      contact: warehouse.contact,
+    };
+  });
   console.log('GET "/" success');
-  console.log('CLIENT_RES: vidArr');
-  res.status(200).json(warehouseArr)
+  console.log("CLIENT_RES: vidArr");
+  res.status(200).json(warehouseArr);
 };
 
 // Form validation
 const validate = (req) => {
-
   let errorCount = 0;
   let errors = {};
 
   if (!req.body.name) {
     errorCount += 1;
-    errors.name = true; 
+    errors.name = true;
   }
   if (!req.body.address) {
     errorCount += 1;
@@ -55,33 +52,32 @@ const validate = (req) => {
     errorCount += 1;
     errors.position = true;
   }
-  
-  const isPhoneValid = isMobilePhone(req.body.phone, ['en-CA']);
-  console.log(isPhoneValid)
+
+  const isPhoneValid = isMobilePhone(req.body.phone, ["en-CA"]);
+  console.log(isPhoneValid);
   if (!isPhoneValid) {
     errorCount += 1;
     errors.phone = true;
   }
 
   const isEmailValid = isEmail(req.body.email);
-  console.log(isEmailValid)
+  console.log(isEmailValid);
   if (!isEmailValid) {
     errorCount += 1;
     errors.email = true;
   }
 
   return {
-    errorCount, errors
-  }
-}
+    errorCount,
+    errors,
+  };
+};
 
 // POST request for creating a new warehouse
 exports.addWarehouse = (req, res) => {
-  
   const result = validate(req);
   console.log(result);
   if (result.errorCount === 0) {
-
     const newWarehouse = {
       id: uuidv4(),
       name: req.body.warehouseName,
@@ -92,43 +88,102 @@ exports.addWarehouse = (req, res) => {
         name: req.body.contactName,
         position: req.body.position,
         phone: req.body.phone,
-        email: req.body.email
-      }
-    }
+        email: req.body.email,
+      },
+    };
 
     let warehouses = warehouseModel.getAll();
-    warehouses.push(newWarehouse)
+    warehouses.push(newWarehouse);
 
     warehouseModel.saveAll(warehouses);
 
     res.status(201).send({
-      "result": result,
-      "id": newWarehouse.id,
-      "status": "successful"
-    })
+      result: result,
+      id: newWarehouse.id,
+      status: "successful",
+    });
   }
   res.send({
-    "result": result,
-    "status": "unsuccessful"
-  })
-}
+    result: result,
+    status: "unsuccessful",
+  });
+};
 
 exports.getById = (req, res) => {
-  const individualWarehouse = warehouseModel.getAll().find(
-    (warehouse) => warehouse.id === req.params.id);
-    
-    // Get all inventory items for specific warehouse
-      const inventoryArr = JSON.parse(fs.readFileSync(filePath))
-      individualWarehouse.inventory = []
-      inventoryArr.forEach(inventoryItem => {
-        if (inventoryItem.warehouseID === req.params.id) {
-          individualWarehouse.inventory.push(inventoryItem)
-        }
-      })
-      res.status(200).json(individualWarehouse)
+  const individualWarehouse = warehouseModel
+    .getAll()
+    .find((warehouse) => warehouse.id === req.params.id);
+
+  // Get all inventory items for specific warehouse
+  const inventoryArr = JSON.parse(fs.readFileSync(filePath));
+  individualWarehouse.inventory = [];
+  inventoryArr.forEach((inventoryItem) => {
+    if (inventoryItem.warehouseID === req.params.id) {
+      individualWarehouse.inventory.push(inventoryItem);
     }
-    
-console.log('Successful warehouse retrieved')
+  });
+  res.status(200).json(individualWarehouse);
+};
 
-// Will need to attach the inventory to getById. If the inventory ID matches the warehouse ID, push the inventory item into the inventory array.
+console.log("Successful warehouse retrieved");
 
+exports.editById = (req, res) => {
+  // Add some validatoin. Requires fields: name, street address, city, country, contact name, position, phone, email.
+  console.log(req.body)
+  if (
+    !req.body.name ||
+    !req.body.address ||
+    !req.body.city ||
+    !req.body.country ||
+    !req.body.contact.contactName ||
+    !req.body.contact.position ||
+    !req.body.contact.phone ||
+    !req.body.contact.email
+  ) {
+    return res.status(400).json({
+      message:
+        "The folliwng fields cannot be empty: warehouse name, adress, city, country, contact name, contact position, contact phone and contact email.",
+    });
+  }
+
+  // Find our warehouse ID in the params
+  const { id } = req.params;
+
+  // Find all the warehouses
+  const warehouses = warehouseModel.getAll()
+
+  // Find the warehouse to update
+  let updatedWarehouse = warehouses.find((warehouse) => warehouse.id === id);
+
+  // Update info
+  updatedWarehouse = {
+    id: id,
+    name: req.body.name,
+    address: req.body.address,
+    city: req.body.city,
+    country: req.body.country,
+    contact: 
+      {
+        name: req.body.contact.contactName,
+        position: req.body.contact.position,
+        phone: req.body.contact.phone,
+        email: req.body.contact.email,
+      }
+  };
+  //find index of the warehouse
+  let newWarehouseIndex = warehouses.findIndex(
+    (warehouse) => warehouse.id === id
+  );
+
+  //using the index, cut the original team from the array and replace with the updated one
+  warehouses.splice(newWarehouseIndex, 1, updatedWarehouse);
+
+  
+  //write the file with the updated team changes
+  // warehouseModel.saveAll(warehouses);
+  console.log(updatedWarehouse, id)
+  // console.log(req.params.id)
+
+  //send the response
+  res.status(201).json(updatedWarehouse);
+};

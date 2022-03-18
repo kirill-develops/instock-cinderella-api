@@ -10,9 +10,9 @@ router.route('/')
 // GET, PUT & DELETE req for "/:id" routes of specified warehouse
 router.route('/:id')
   .get(warehouseController.getById)
-//   .put(warehouseController.editById)
-//   .delete(warehouseController.deleteById);
-
-
+  //   .delete(warehouseController.deleteById);
+  
+router.route('/:id/edit')
+  .put(warehouseController.editById)
 
 module.exports = router;
