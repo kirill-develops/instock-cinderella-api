@@ -1,26 +1,28 @@
-const { v4: uuidv4 } = require("uuid");
-const { default: isEmail } = require("validator/lib/isEmail");
-const { default: isMobilePhone } = require("validator/lib/isMobilePhone");
-const warehouseModel = require("../model/warehouse-models");
-
+const { v4: uuidv4 } = require('uuid');
 const fs = require("fs");
-const filePath = "./data/inventories.json";
+const { default: isEmail } = require('validator/lib/isEmail');
+const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
+const warehouseModel = require('../model/warehouse-models');
+const inventoryModel = require('../model/inventory-models');
+// const fs = require("fs");
+
+
+const filePath = './data/inventories.json';
 
 exports.getAll = (_req, res) => {
   // create modified array of essential info to send to client
-  const warehouseArr = warehouseModel.getAll().map((warehouse) => {
-    return {
-      id: warehouse.id,
-      name: warehouse.name,
-      address: warehouse.address,
-      city: warehouse.city,
-      country: warehouse.country,
-      contact: warehouse.contact,
-    };
-  });
-  console.log('GET "/" success');
-  console.log("CLIENT_RES: vidArr");
-  res.status(200).json(warehouseArr);
+  const warehouseArr = warehouseModel.getAll()
+    .map(warehouse => {
+      return {
+        "id": warehouse.id,
+        "name": warehouse.name,
+        "address": warehouse.address,
+        "city": warehouse.city,
+        "country": warehouse.country,
+        "contact": warehouse.contact
+      }
+    })
+  res.status(200).json(warehouseArr)
 };
 
 // Form validation
@@ -53,8 +55,8 @@ const validate = (req) => {
     errors.position = true;
   }
 
-  const isPhoneValid = isMobilePhone(req.body.phone, ["en-CA"]);
-  console.log(isPhoneValid);
+  const isPhoneValid = isMobilePhone(req.body.phone, ['en-CA']);
+  console.log(isPhoneValid)
   if (!isPhoneValid) {
     errorCount += 1;
     errors.phone = true;
