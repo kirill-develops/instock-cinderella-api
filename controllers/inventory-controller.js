@@ -28,4 +28,23 @@ exports.getById = (req, res) => {
   res.status(200).json(inventoryEntry);
 }
 
+// Delete inventory item by ID
+exports.deleteById = (req, res) => {
+  const { id } = req.params;
 
+  // Accessing inventory list
+  let inventoryArray = inventoryModel.getAll();
+
+  const findItem = inventoryArray.find(inventoryItem => inventoryItem.id === id)
+
+  if (!findItem) {
+    res.status(404).send({ message: "Item not found" })
+  } else {
+
+    // Deleting the warehouse inventory from the inventories JSON
+    inventoryArray = inventoryArray.filter(inventory => inventory.id !== id)
+    inventoryModel.saveAll(inventoryArray);
+  }
+
+  res.status(202).send({ message: "Item deleted successfully" })
+}
