@@ -11,7 +11,7 @@ router.route('/')
 router.route('/:id')
   .get(inventoryController.getById)
 //   .put(inventoryController.editById)
-//   .delete(inventoryController.deleteById);
+  .delete(inventoryController.deleteById);
 
 
 
