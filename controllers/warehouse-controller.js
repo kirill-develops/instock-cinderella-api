@@ -130,7 +130,7 @@ exports.getById = (req, res) => {
 console.log("Successful warehouse retrieved");
 
 exports.editById = (req, res) => {
-  // Add some validatoin. Requires fields: name, street address, city, country, contact name, position, phone, email.
+  // Add some validation. Requires fields: name, street address, city, country, contact name, position, phone, email.
   console.log(req.body)
   if (
     !req.body.name ||

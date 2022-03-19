@@ -10,7 +10,7 @@ router.route('/')
 // GET, PUT & DELETE req for "/:id" routes of specified inventory
 router.route('/:id')
   .get(inventoryController.getById)
-//   .put(inventoryController.editById)
+  .put(inventoryController.editById)
 //   .delete(inventoryController.deleteById);
 
 
