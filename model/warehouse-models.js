@@ -12,3 +12,6 @@ exports.getAll = () => {
 exports.saveAll = (warehouseArr) => {
   fs.writeFileSync(filePath, JSON.stringify(warehouseArr))
 }
+
+
+
