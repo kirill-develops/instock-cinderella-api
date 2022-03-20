@@ -25,7 +25,6 @@ exports.getById = (req, res) => {
   const inventoryEntry = inventoryModel.getAll()
     .find((item) => item.id === req.params.id);
 
-  console.log('Successful inventory Entry retrieved');
   res.status(200).json(inventoryEntry);
 };
 
@@ -93,8 +92,9 @@ console.log('Inventory item has been updated!');
 // POST request for creating a new Inventory Item
 exports.addInventoryItem = (req, res) => {
 
+  // required warehouse ID
   const getID = (req) => {
-    // required warehouse ID
+    
     let selectedWarehouseName = req.body.warehouseName;
     
     // access the warehouse array
@@ -113,10 +113,7 @@ exports.addInventoryItem = (req, res) => {
     !req.body.category ||
     !req.body.status
   ) {
-    return res.status(400).json({
-      message:
-        "Fields cannot be empty",
-    });
+    return res.status(400).send("Fields cannot be empty");
 
   } else {
 
@@ -136,7 +133,7 @@ exports.addInventoryItem = (req, res) => {
 
     inventoryModel.saveAll(inventoryArray);
 
-    res.status(201).send({
+    res.status(201).json({
       id: newInventoryItem.id,
       status: "successful",
     });
@@ -153,7 +150,7 @@ exports.deleteById = (req, res) => {
   const findItem = inventoryArray.find(inventoryItem => inventoryItem.id === id)
 
   if (!findItem) {
-    res.status(404).send({ message: "Item not found" })
+    res.status(404).send("Item not found")
   } else {
 
     // Deleting the warehouse inventory from the inventories JSON
@@ -161,5 +158,5 @@ exports.deleteById = (req, res) => {
     inventoryModel.saveAll(inventoryArray);
   }
 
-  res.status(202).send({ message: "Item deleted successfully" })
+  res.status(202).send("Item deleted successfully")
 }

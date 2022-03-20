@@ -4,7 +4,6 @@ const { default: isEmail } = require('validator/lib/isEmail');
 const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
 const warehouseModel = require('../model/warehouse-models');
 const inventoryModel = require('../model/inventory-models');
-// const fs = require("fs");
 
 
 const filePath = './data/inventories.json';
@@ -105,7 +104,7 @@ exports.addWarehouse = (req, res) => {
       status: "successful",
     });
   }
-  res.send({
+  res.status(400).send({
     result: result,
     status: "unsuccessful",
   });
