@@ -28,6 +28,11 @@ exports.getById = (req, res) => {
   res.status(200).json(inventoryEntry);
 }
 
+
+//===================================================
+//=============Edit Inventory Item By ID=============
+//===================================================
+
 exports.editById = (req, res) => {
 
   if (
@@ -35,7 +40,8 @@ exports.editById = (req, res) => {
     !req.body.description ||
     !req.body.category || 
     !req.body.status || 
-    !req.body.warehouseName
+    !req.body.warehouseName ||
+    !req.body.quantity
   ) {
   return res.status(400).json({
     message: 
@@ -43,23 +49,26 @@ exports.editById = (req, res) => {
   });
 }
 
-  // Find our warehouse ID in the params
+  // Find our inventory ID in the params
 const { id } = req.params; 
 
- // Find all the warehouses
+ // Find all the inventory
 const inventories = inventoryModel.getAll(); 
 
-  // Find the warehouse to update
+  // Find the inventory to update
 let updatedInventoryItem = inventories.find((item) => item.id === id);
 
 // Update inventory item info
 updatedInventoryItem = {
   id: id, 
+  itemName: req.body.itemName,
   warehouseName: req.body.warehouseName,
   description: req.body.description,
   category: req.body.category, 
-  status: req.body.status
+  status: req.body.status,
+  quantity: req.body.quantity, 
 }
+
 
 // Find index of the warehouse in the Inventory Array to splice it out
 let newInventoryItemIndex = inventories.findIndex(
@@ -70,11 +79,14 @@ let newInventoryItemIndex = inventories.findIndex(
 inventories.splice(newInventoryItemIndex, 1, updatedInventoryItem)
 
 // Write the file with the updated changes
-// inventoryModel.saveAll(inventories);
+inventoryModel.saveAll(inventories);
 console.log(updatedInventoryItem)
+// console.log(updatedInventoryItem)
 
 // Send the response
 res.status(201).json(updatedInventoryItem)
+console.log('Inventory item has been updated!');
+
 
 }
 

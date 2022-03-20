@@ -111,6 +111,11 @@ exports.addWarehouse = (req, res) => {
   });
 };
 
+
+//===================================================
+//=============Edit Warehouse Item By ID=============
+//===================================================
+
 exports.getById = (req, res) => {
   const individualWarehouse = warehouseModel
     .getAll()
@@ -125,9 +130,10 @@ exports.getById = (req, res) => {
     }
   });
   res.status(200).json(individualWarehouse);
+  
+  console.log("Successful warehouse retrieved");
 };
 
-console.log("Successful warehouse retrieved");
 
 exports.editById = (req, res) => {
   // Add some validation. Requires fields: name, street address, city, country, contact name, position, phone, email.
