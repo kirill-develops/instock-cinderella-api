@@ -6,15 +6,14 @@ const inventoryController = require('../controllers/inventory-controller');
 router.route('/')
   .get(inventoryController.getAll)
   .post(inventoryController.addInventoryItem);
-
-// GET, PUT & DELETE req for "/:id" routes of specified inventory
-router.route('/:id')
+  
+  // GET, PUT & DELETE req for "/:id" routes of specified inventory
+  router.route('/:id')
   .get(inventoryController.getById)
   .delete(inventoryController.deleteById);
-
-router.route('/:id/edit')
-  .put(inventoryController.editById)
-
-
+  
+    router.route('/:id/edit')
+      .put(inventoryController.editById); 
+  
 
 module.exports = router;

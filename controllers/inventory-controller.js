@@ -27,15 +27,14 @@ exports.getById = (req, res) => {
 
   console.log('Successful inventory Entry retrieved');
   res.status(200).json(inventoryEntry);
-}
-
+};
 
 //===================================================
 //=============Edit Inventory Item By ID=============
 //===================================================
 
 exports.editById = (req, res) => {
-
+console.log('test');
   if (
     !req.body.itemName ||
     !req.body.description ||
@@ -70,7 +69,6 @@ updatedInventoryItem = {
   quantity: req.body.quantity, 
 }
 
-
 // Find index of the warehouse in the Inventory Array to splice it out
 let newInventoryItemIndex = inventories.findIndex(
   (inventory) => inventory.id === id
@@ -88,9 +86,7 @@ console.log(updatedInventoryItem)
 res.status(201).json(updatedInventoryItem)
 console.log('Inventory item has been updated!');
 
-
 }
-
 
 
 
