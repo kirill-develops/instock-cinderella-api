@@ -26,7 +26,68 @@ exports.getById = (req, res) => {
     .find((item) => item.id === req.params.id);
 
   res.status(200).json(inventoryEntry);
+};
+
+//===================================================
+//=============Edit Inventory Item By ID=============
+//===================================================
+
+exports.editById = (req, res) => {
+console.log('test');
+  if (
+    !req.body.itemName ||
+    !req.body.description ||
+    !req.body.category || 
+    !req.body.status || 
+    !req.body.warehouseName ||
+    !req.body.quantity
+  ) {
+  return res.status(400).json({
+    message: 
+    "Please make sure all fields are correctly filled."
+  });
 }
+
+  // Find our inventory ID in the params
+const { id } = req.params; 
+
+ // Find all the inventory
+const inventories = inventoryModel.getAll(); 
+
+  // Find the inventory to update
+let updatedInventoryItem = inventories.find((item) => item.id === id);
+
+// Update inventory item info
+updatedInventoryItem = {
+  id: id, 
+  itemName: req.body.itemName,
+  warehouseName: req.body.warehouseName,
+  description: req.body.description,
+  category: req.body.category, 
+  status: req.body.status,
+  quantity: req.body.quantity, 
+}
+
+// Find index of the warehouse in the Inventory Array to splice it out
+let newInventoryItemIndex = inventories.findIndex(
+  (inventory) => inventory.id === id
+)
+
+// Using the index, cut the original team from the array and replace with the updated one
+inventories.splice(newInventoryItemIndex, 1, updatedInventoryItem)
+
+// Write the file with the updated changes
+inventoryModel.saveAll(inventories);
+console.log(updatedInventoryItem)
+// console.log(updatedInventoryItem)
+
+// Send the response
+res.status(201).json(updatedInventoryItem)
+console.log('Inventory item has been updated!');
+
+}
+
+
 
 // POST request for creating a new Inventory Item
 exports.addInventoryItem = (req, res) => {

@@ -110,6 +110,11 @@ exports.addWarehouse = (req, res) => {
   });
 };
 
+
+//===================================================
+//=============Edit Warehouse Item By ID=============
+//===================================================
+
 exports.getById = (req, res) => {
   const individualWarehouse = warehouseModel
     .getAll()
@@ -124,6 +129,8 @@ exports.getById = (req, res) => {
     }
   });
   res.status(200).json(individualWarehouse);
+  
+  console.log("Successful warehouse retrieved");
 };
 
 
