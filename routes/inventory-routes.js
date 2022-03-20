@@ -5,7 +5,7 @@ const inventoryController = require('../controllers/inventory-controller');
 // GET & POST req for "/" routes
 router.route('/')
   .get(inventoryController.getAll)
-//   .post(inventoryController.addNew);
+  .post(inventoryController.addInventoryItem);
 
 // GET, PUT & DELETE req for "/:id" routes of specified inventory
 router.route('/:id')

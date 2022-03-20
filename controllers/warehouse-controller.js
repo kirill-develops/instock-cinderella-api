@@ -193,6 +193,8 @@ exports.editById = (req, res) => {
   res.status(201).json(updatedWarehouse);
 };
 
+
+
 // Delete warehouse by ID
 exports.deleteById = (req, res) => {
   const { id } = req.params;

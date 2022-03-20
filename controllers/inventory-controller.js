@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const inventoryModel = require('../model/inventory-models');
+const warehouseModel = require('../model/warehouse-models');
 
 exports.getAll = (_req, res) => {
 
@@ -92,6 +93,59 @@ console.log('Inventory item has been updated!');
 
 
 
+
+// POST request for creating a new Inventory Item
+exports.addInventoryItem = (req, res) => {
+
+  const getID = (req) => {
+    // required warehouse ID
+    let selectedWarehouseName = req.body.warehouseName;
+    
+    // access the warehouse array
+    let warehouses = warehouseModel.getAll();
+
+    // find the selected warehouse name from the warehouse array 
+    let selectedWarehouse = warehouses.find(warehouse => warehouse.name === selectedWarehouseName);
+
+    return selectedWarehouse.id;
+  }
+
+  if (
+    !req.body.warehouseName ||
+    !req.body.itemName ||
+    !req.body.description ||
+    !req.body.category ||
+    !req.body.status
+  ) {
+    return res.status(400).json({
+      message:
+        "Fields cannot be empty",
+    });
+
+  } else {
+
+    const newInventoryItem = {
+      id: uuidv4(),
+      warehouseID: getID(req),
+      warehouseName: req.body.warehouseName,
+      itemName: req.body.itemName,
+      description: req.body.description,
+      category: req.body.category,
+      status: req.body.status,
+      quantity: req.body.quantity
+    }
+
+    let inventoryArray = inventoryModel.getAll();
+    inventoryArray.push(newInventoryItem);
+
+    inventoryModel.saveAll(inventoryArray);
+
+    res.status(201).send({
+      id: newInventoryItem.id,
+      status: "successful",
+    });
+  }
+}
 
 // Delete inventory item by ID
 exports.deleteById = (req, res) => {
