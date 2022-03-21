@@ -129,7 +129,7 @@ exports.getById = (req, res) => {
     }
   });
   res.status(200).json(individualWarehouse);
-  
+
   console.log("Successful warehouse retrieved");
 };
 
@@ -169,13 +169,13 @@ exports.editById = (req, res) => {
     address: req.body.address,
     city: req.body.city,
     country: req.body.country,
-    contact: 
-      {
-        name: req.body.contactName,
-        position: req.body.position,
-        phone: req.body.phone,
-        email: req.body.email,
-      }
+    contact:
+    {
+      name: req.body.contactName,
+      position: req.body.position,
+      phone: req.body.phone,
+      email: req.body.email,
+    }
   };
   //find index of the warehouse
   let newWarehouseIndex = warehouses.findIndex(
@@ -197,28 +197,28 @@ exports.editById = (req, res) => {
 // Delete warehouse by ID
 exports.deleteById = (req, res) => {
   const { id } = req.params;
-  
+
   // Accessing warehouse list
   let warehouseArray = warehouseModel.getAll();
   // Accessing inventory list
   let inventoryArray = inventoryModel.getAll();
-  
+
   const findWarehouse = warehouseArray.find(warehouse => warehouse.id === id)
-  
+
   if (!findWarehouse) {
-    res.status(404).send({ message: "Warehouse not found" })  
+    res.status(404).send({ message: "Warehouse not found" })
   } else {
-    
+
     // Deleting warehouse details from the warehouses JSON
     warehouseArray = warehouseArray.filter(warehouse => warehouse.id !== id)
     warehouseModel.saveAll(warehouseArray);
-    
+
     // Deleting the warehouse inventory from the inventories JSON
     inventoryArray = inventoryArray.filter(inventory => inventory.warehouseID !== id)
     inventoryModel.saveAll(inventoryArray);
-    }
-
-    res.status(202).send({message: "Warehouse and it's inventory items deleted successfully"})
   }
+
+  res.status(202).send({ message: "Warehouse and it's inventory items deleted successfully" })
+}
 
 
