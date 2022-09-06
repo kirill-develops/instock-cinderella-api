@@ -1,6 +1,7 @@
 // require('dotenv').config();
 const express = require("express");
 const app = express();
+const helmet = require('helmet');
 const cors = require('cors');
 
 const PORT = process.env.PORT || 8080;
@@ -8,8 +9,10 @@ const PORT = process.env.PORT || 8080;
 //to access request.body in our POST requests
 app.use(express.json());
 
+app.use(helmet());
+
 // enable cors
-app.use(cors());
+app.use(cors({ origin: true }));
 
 //Routes
 const warehousesRoutes = require('./routes/warehouses-routes');
