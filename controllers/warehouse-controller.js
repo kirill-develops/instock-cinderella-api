@@ -177,6 +177,7 @@ exports.editById = (req, res) => {
       email: req.body.email,
     }
   };
+
   //find index of the warehouse
   let newWarehouseIndex = warehouses.findIndex(
     (warehouse) => warehouse.id === id
