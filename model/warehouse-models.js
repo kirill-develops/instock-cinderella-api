@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const filePath = './data/warehouses.json';
+const filePath = '../data/warehouses.json';
 
 // function to get videos from JSON file
 exports.getAll = () => {
