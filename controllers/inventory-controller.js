@@ -1,162 +1,200 @@
-const { v4: uuidv4 } = require('uuid');
-const inventoryModel = require('../model/inventory-models');
-const warehouseModel = require('../model/warehouse-models');
+const { v4: uuidv4 } = require("uuid");
+const inventoryModel = require("../model/inventory-models");
+const warehouseModel = require("../model/warehouse-models");
+const {
+  hasErrors,
+  isMissing,
+  sendNotFound,
+  sendServerError,
+  sendValidationError,
+} = require("./controller-utils");
 
-exports.getAll = (_req, res) => {
+const INVENTORY_VALIDATION_MESSAGE =
+  "Please make sure all fields are correctly filled.";
 
-  // create modified array of essential info to send to client
-  const inventoryArr = inventoryModel.getAll()
-    .map(item => {
-      return {
-        "id": item.id,
-        "itemName": item.itemName,
-        "description": item.description,
-        "category": item.category,
-        "warehouseName": item.warehouseName,
-        "status": item.status,
-        "quantity": item.quantity
-      }
-    })
-  res.status(200).json(inventoryArr);
-};
-
-exports.getById = (req, res) => {
-
-  const inventoryEntry = inventoryModel.getAll()
-    .find((item) => item.id === req.params.id);
-
-  res.status(200).json(inventoryEntry);
-};
-
-//===================================================
-//=============Edit Inventory Item By ID=============
-//===================================================
-
-exports.editById = (req, res) => {
-console.log('test');
-  if (
-    !req.body.itemName ||
-    !req.body.description ||
-    !req.body.category || 
-    !req.body.status || 
-    !req.body.warehouseName ||
-    !req.body.quantity
-  ) {
-  return res.status(400).json({
-    message: 
-    "Please make sure all fields are correctly filled."
-  });
-}
-
-  // Find our inventory ID in the params
-const { id } = req.params; 
-
- // Find all the inventory
-const inventories = inventoryModel.getAll(); 
-
-  // Find the inventory to update
-let updatedInventoryItem = inventories.find((item) => item.id === id);
-
-// Update inventory item info
-updatedInventoryItem = {
-  id: id, 
-  itemName: req.body.itemName,
-  warehouseName: req.body.warehouseName,
-  description: req.body.description,
-  category: req.body.category, 
-  status: req.body.status,
-  quantity: req.body.quantity, 
-}
-
-// Find index of the warehouse in the Inventory Array to splice it out
-let newInventoryItemIndex = inventories.findIndex(
-  (inventory) => inventory.id === id
-)
-
-// Using the index, cut the original team from the array and replace with the updated one
-inventories.splice(newInventoryItemIndex, 1, updatedInventoryItem)
-
-// Write the file with the updated changes
-inventoryModel.saveAll(inventories);
-console.log(updatedInventoryItem)
-// console.log(updatedInventoryItem)
-
-// Send the response
-res.status(201).json(updatedInventoryItem)
-console.log('Inventory item has been updated!');
-
-}
-
-
-
-// POST request for creating a new Inventory Item
-exports.addInventoryItem = (req, res) => {
-
-  // required warehouse ID
-  const getID = (req) => {
-    
-    let selectedWarehouseName = req.body.warehouseName;
-    
-    // access the warehouse array
-    let warehouses = warehouseModel.getAll();
-
-    // find the selected warehouse name from the warehouse array 
-    let selectedWarehouse = warehouses.find(warehouse => warehouse.name === selectedWarehouseName);
-
-    return selectedWarehouse.id;
+const parseQuantity = (value) => {
+  if (isMissing(value)) {
+    return null;
   }
 
-  if (
-    !req.body.warehouseName ||
-    !req.body.itemName ||
-    !req.body.description ||
-    !req.body.category ||
-    !req.body.status
-  ) {
-    return res.status(400).send("Fields cannot be empty");
+  const parsedValue = Number(value);
+  if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+    return null;
+  }
 
-  } else {
+  return parsedValue;
+};
 
-    const newInventoryItem = {
-      id: uuidv4(),
-      warehouseID: getID(req),
-      warehouseName: req.body.warehouseName,
-      itemName: req.body.itemName,
-      description: req.body.description,
-      category: req.body.category,
-      status: req.body.status,
-      quantity: req.body.quantity
+const validateInventoryPayload = (body) => {
+  const errors = {};
+
+  if (isMissing(body.warehouseName)) errors.warehouseName = true;
+  if (isMissing(body.itemName)) errors.itemName = true;
+  if (isMissing(body.description)) errors.description = true;
+  if (isMissing(body.category)) errors.category = true;
+  if (isMissing(body.status)) errors.status = true;
+
+  const quantity = parseQuantity(body.quantity);
+  if (quantity === null) errors.quantity = true;
+
+  return { errors, quantity };
+};
+
+const findWarehouseByName = (warehouses, warehouseName) =>
+  warehouses.find((warehouse) => warehouse.name === warehouseName);
+
+const buildInventoryItem = (id, warehouse, body, quantity) => ({
+  id,
+  warehouseID: warehouse.id,
+  warehouseName: warehouse.name,
+  itemName: body.itemName,
+  description: body.description,
+  category: body.category,
+  status: body.status,
+  quantity,
+});
+
+exports.getAll = async (_req, res) => {
+  try {
+    const inventory = (await inventoryModel.getAll()).map((item) => ({
+      id: item.id,
+      itemName: item.itemName,
+      description: item.description,
+      category: item.category,
+      warehouseName: item.warehouseName,
+      status: item.status,
+      quantity: item.quantity,
+    }));
+
+    return res.status(200).json(inventory);
+  } catch (error) {
+    return sendServerError(res, error);
+  }
+};
+
+exports.getById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const inventoryItem = (await inventoryModel.getAll()).find(
+      (item) => item.id === id,
+    );
+
+    if (!inventoryItem) {
+      return sendNotFound(res, "Item");
     }
 
-    let inventoryArray = inventoryModel.getAll();
-    inventoryArray.push(newInventoryItem);
+    return res.status(200).json(inventoryItem);
+  } catch (error) {
+    return sendServerError(res, error);
+  }
+};
 
-    inventoryModel.saveAll(inventoryArray);
+exports.editById = async (req, res) => {
+  try {
+    const { errors, quantity } = validateInventoryPayload(req.body);
+    if (hasErrors(errors)) {
+      return sendValidationError(res, errors, INVENTORY_VALIDATION_MESSAGE);
+    }
 
-    res.status(201).json({
+    const { id } = req.params;
+    const [inventory, warehouses] = await Promise.all([
+      inventoryModel.getAll(),
+      warehouseModel.getAll(),
+    ]);
+    const selectedWarehouse = findWarehouseByName(
+      warehouses,
+      req.body.warehouseName,
+    );
+
+    if (!selectedWarehouse) {
+      return sendValidationError(
+        res,
+        { warehouseName: true },
+        INVENTORY_VALIDATION_MESSAGE,
+      );
+    }
+
+    const inventoryIndex = inventory.findIndex((item) => item.id === id);
+    if (inventoryIndex === -1) {
+      return sendNotFound(res, "Item");
+    }
+
+    const updatedInventoryItem = buildInventoryItem(
+      id,
+      selectedWarehouse,
+      req.body,
+      quantity,
+    );
+
+    inventory[inventoryIndex] = updatedInventoryItem;
+    await inventoryModel.saveAll(inventory);
+
+    return res.status(200).json(updatedInventoryItem);
+  } catch (error) {
+    return sendServerError(res, error);
+  }
+};
+
+exports.addInventoryItem = async (req, res) => {
+  try {
+    const { errors, quantity } = validateInventoryPayload(req.body);
+    if (hasErrors(errors)) {
+      return sendValidationError(res, errors, INVENTORY_VALIDATION_MESSAGE);
+    }
+
+    const [inventory, warehouses] = await Promise.all([
+      inventoryModel.getAll(),
+      warehouseModel.getAll(),
+    ]);
+    const selectedWarehouse = findWarehouseByName(
+      warehouses,
+      req.body.warehouseName,
+    );
+
+    if (!selectedWarehouse) {
+      return sendValidationError(
+        res,
+        { warehouseName: true },
+        INVENTORY_VALIDATION_MESSAGE,
+      );
+    }
+
+    const newInventoryItem = buildInventoryItem(
+      uuidv4(),
+      selectedWarehouse,
+      req.body,
+      quantity,
+    );
+
+    inventory.push(newInventoryItem);
+    await inventoryModel.saveAll(inventory);
+
+    return res.status(201).json({
       id: newInventoryItem.id,
       status: "successful",
     });
+  } catch (error) {
+    return sendServerError(res, error);
   }
-}
+};
 
-// Delete inventory item by ID
-exports.deleteById = (req, res) => {
-  const { id } = req.params;
+exports.deleteById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const inventory = await inventoryModel.getAll();
+    const inventoryIndex = inventory.findIndex((item) => item.id === id);
 
-  // Accessing inventory list
-  let inventoryArray = inventoryModel.getAll();
+    if (inventoryIndex === -1) {
+      return sendNotFound(res, "Item");
+    }
 
-  const findItem = inventoryArray.find(inventoryItem => inventoryItem.id === id)
+    const updatedInventory = inventory.filter((item) => item.id !== id);
+    await inventoryModel.saveAll(updatedInventory);
 
-  if (!findItem) {
-    res.status(404).send("Item not found")
-  } else {
-
-    // Deleting the warehouse inventory from the inventories JSON
-    inventoryArray = inventoryArray.filter(inventory => inventory.id !== id)
-    inventoryModel.saveAll(inventoryArray);
+    return res.status(200).json({
+      message: "Item deleted successfully",
+    });
+  } catch (error) {
+    return sendServerError(res, error);
   }
-
-  res.status(202).send("Item deleted successfully")
-}
+};

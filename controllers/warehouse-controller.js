@@ -1,225 +1,174 @@
-const { v4: uuidv4 } = require('uuid');
-const fs = require("fs");
-const { default: isEmail } = require('validator/lib/isEmail');
-const { default: isMobilePhone } = require('validator/lib/isMobilePhone');
-const warehouseModel = require('../model/warehouse-models');
-const inventoryModel = require('../model/inventory-models');
+const { v4: uuidv4 } = require("uuid");
+const { default: isEmail } = require("validator/lib/isEmail");
+const { default: isMobilePhone } = require("validator/lib/isMobilePhone");
+const warehouseModel = require("../model/warehouse-models");
+const inventoryModel = require("../model/inventory-models");
+const {
+  hasErrors,
+  isMissing,
+  sendNotFound,
+  sendServerError,
+  sendValidationError,
+} = require("./controller-utils");
 
+const WAREHOUSE_VALIDATION_MESSAGE =
+  "Please make sure all fields are correctly filled.";
 
-const filePath = './data/inventories.json';
+const normalizeWarehousePayload = (body) => ({
+  ...body,
+  // Backward compatibility with older clients
+  name: body.name ?? body.warehouseName,
+});
 
-exports.getAll = (_req, res) => {
-  // create modified array of essential info to send to client
-  const warehouseArr = warehouseModel.getAll()
-    .map(warehouse => {
-      return {
-        "id": warehouse.id,
-        "name": warehouse.name,
-        "address": warehouse.address,
-        "city": warehouse.city,
-        "country": warehouse.country,
-        "contact": warehouse.contact
-      }
-    })
-  res.status(200).json(warehouseArr)
-};
+const validateWarehousePayload = (body) => {
+  const errors = {};
 
-// Form validation
-const validate = (req) => {
-  let errorCount = 0;
-  let errors = {};
-
-  if (!req.body.name) {
-    errorCount += 1;
-    errors.name = true;
-  }
-  if (!req.body.address) {
-    errorCount += 1;
-    errors.address = true;
-  }
-  if (!req.body.city) {
-    errorCount += 1;
-    errors.city = true;
-  }
-  if (!req.body.country) {
-    errorCount += 1;
-    errors.country = true;
-  }
-  if (!req.body.contactName) {
-    errorCount += 1;
-    errors.contactName = true;
-  }
-  if (!req.body.position) {
-    errorCount += 1;
-    errors.position = true;
-  }
-
-  const isPhoneValid = isMobilePhone(req.body.phone, ['en-CA']);
-  console.log(isPhoneValid)
-  if (!isPhoneValid) {
-    errorCount += 1;
+  if (isMissing(body.name)) errors.name = true;
+  if (isMissing(body.address)) errors.address = true;
+  if (isMissing(body.city)) errors.city = true;
+  if (isMissing(body.country)) errors.country = true;
+  if (isMissing(body.contactName)) errors.contactName = true;
+  if (isMissing(body.position)) errors.position = true;
+  if (isMissing(body.phone) || !isMobilePhone(String(body.phone), ["en-CA"])) {
     errors.phone = true;
   }
-
-  const isEmailValid = isEmail(req.body.email);
-  console.log(isEmailValid);
-  if (!isEmailValid) {
-    errorCount += 1;
+  if (isMissing(body.email) || !isEmail(String(body.email))) {
     errors.email = true;
   }
 
-  return {
-    errorCount,
-    errors,
-  };
+  return errors;
 };
 
-// POST request for creating a new warehouse
-exports.addWarehouse = (req, res) => {
-  const result = validate(req);
-  console.log(result);
-  if (result.errorCount === 0) {
-    const newWarehouse = {
-      id: uuidv4(),
-      name: req.body.warehouseName,
-      address: req.body.address,
-      city: req.body.city,
-      country: req.body.country,
-      contact: {
-        name: req.body.contactName,
-        position: req.body.position,
-        phone: req.body.phone,
-        email: req.body.email,
-      },
-    };
+const buildWarehouse = (id, body) => ({
+  id,
+  name: body.name,
+  address: body.address,
+  city: body.city,
+  country: body.country,
+  contact: {
+    name: body.contactName,
+    position: body.position,
+    phone: body.phone,
+    email: body.email,
+  },
+});
 
-    let warehouses = warehouseModel.getAll();
-    warehouses.push(newWarehouse);
+exports.getAll = async (_req, res) => {
+  try {
+    const warehouses = (await warehouseModel.getAll()).map((warehouse) => ({
+      id: warehouse.id,
+      name: warehouse.name,
+      address: warehouse.address,
+      city: warehouse.city,
+      country: warehouse.country,
+      contact: warehouse.contact,
+    }));
 
-    warehouseModel.saveAll(warehouses);
+    return res.status(200).json(warehouses);
+  } catch (error) {
+    return sendServerError(res, error);
+  }
+};
 
-    res.status(201).send({
-      result: result,
-      id: newWarehouse.id,
+exports.addWarehouse = async (req, res) => {
+  try {
+    const payload = normalizeWarehousePayload(req.body);
+    const errors = validateWarehousePayload(payload);
+
+    if (hasErrors(errors)) {
+      return sendValidationError(res, errors, WAREHOUSE_VALIDATION_MESSAGE);
+    }
+
+    const warehouses = await warehouseModel.getAll();
+    const warehouse = buildWarehouse(uuidv4(), payload);
+    warehouses.push(warehouse);
+    await warehouseModel.saveAll(warehouses);
+
+    return res.status(201).json({
+      id: warehouse.id,
       status: "successful",
     });
+  } catch (error) {
+    return sendServerError(res, error);
   }
-  res.status(400).send({
-    result: result,
-    status: "unsuccessful",
-  });
 };
 
+exports.getById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [warehouses, inventoryItems] = await Promise.all([
+      warehouseModel.getAll(),
+      inventoryModel.getAll(),
+    ]);
+    const warehouse = warehouses.find((entry) => entry.id === id);
 
-//===================================================
-//=============Edit Warehouse Item By ID=============
-//===================================================
-
-exports.getById = (req, res) => {
-  const individualWarehouse = warehouseModel
-    .getAll()
-    .find((warehouse) => warehouse.id === req.params.id);
-
-  // Get all inventory items for specific warehouse
-  const inventoryArr = JSON.parse(fs.readFileSync(filePath));
-  individualWarehouse.inventory = [];
-  inventoryArr.forEach((inventoryItem) => {
-    if (inventoryItem.warehouseID === req.params.id) {
-      individualWarehouse.inventory.push(inventoryItem);
+    if (!warehouse) {
+      return sendNotFound(res, "Warehouse");
     }
-  });
-  res.status(200).json(individualWarehouse);
 
-  console.log("Successful warehouse retrieved");
-};
+    const inventory = inventoryItems.filter((item) => item.warehouseID === id);
 
-
-exports.editById = (req, res) => {
-  // Add some validation. Requires fields: name, street address, city, country, contact name, position, phone, email.
-  console.log(req.body)
-  if (
-    !req.body.name ||
-    !req.body.address ||
-    !req.body.city ||
-    !req.body.country ||
-    !req.body.contactName ||
-    !req.body.position ||
-    !req.body.phone ||
-    !req.body.email
-  ) {
-    return res.status(400).json({
-      message:
-        "The folliwng fields cannot be empty: warehouse name, adress, city, country, contact name, contact position, contact phone and contact email.",
+    return res.status(200).json({
+      ...warehouse,
+      inventory,
     });
+  } catch (error) {
+    return sendServerError(res, error);
   }
-
-  // Find our warehouse ID in the params
-  const { id } = req.params;
-
-  // Find all the warehouses
-  const warehouses = warehouseModel.getAll()
-
-  // Find the warehouse to update
-  let updatedWarehouse = warehouses.find((warehouse) => warehouse.id === id);
-
-  // Update info
-  updatedWarehouse = {
-    id: id,
-    name: req.body.name,
-    address: req.body.address,
-    city: req.body.city,
-    country: req.body.country,
-    contact:
-    {
-      name: req.body.contactName,
-      position: req.body.position,
-      phone: req.body.phone,
-      email: req.body.email,
-    }
-  };
-
-  //find index of the warehouse
-  let newWarehouseIndex = warehouses.findIndex(
-    (warehouse) => warehouse.id === id
-  );
-
-  //using the index, cut the original team from the array and replace with the updated one
-  warehouses.splice(newWarehouseIndex, 1, updatedWarehouse);
-
-  //write the file with the updated team changes
-  warehouseModel.saveAll(warehouses);
-
-  //send the response
-  res.status(201).json(updatedWarehouse);
 };
 
+exports.editById = async (req, res) => {
+  try {
+    const payload = normalizeWarehousePayload(req.body);
+    const errors = validateWarehousePayload(payload);
 
+    if (hasErrors(errors)) {
+      return sendValidationError(res, errors, WAREHOUSE_VALIDATION_MESSAGE);
+    }
 
-// Delete warehouse by ID
-exports.deleteById = (req, res) => {
-  const { id } = req.params;
+    const { id } = req.params;
+    const warehouses = await warehouseModel.getAll();
+    const warehouseIndex = warehouses.findIndex((warehouse) => warehouse.id === id);
 
-  // Accessing warehouse list
-  let warehouseArray = warehouseModel.getAll();
-  // Accessing inventory list
-  let inventoryArray = inventoryModel.getAll();
+    if (warehouseIndex === -1) {
+      return sendNotFound(res, "Warehouse");
+    }
 
-  const findWarehouse = warehouseArray.find(warehouse => warehouse.id === id)
+    const updatedWarehouse = buildWarehouse(id, payload);
+    warehouses[warehouseIndex] = updatedWarehouse;
+    await warehouseModel.saveAll(warehouses);
 
-  if (!findWarehouse) {
-    res.status(404).send({ message: "Warehouse not found" })
-  } else {
-
-    // Deleting warehouse details from the warehouses JSON
-    warehouseArray = warehouseArray.filter(warehouse => warehouse.id !== id)
-    warehouseModel.saveAll(warehouseArray);
-
-    // Deleting the warehouse inventory from the inventories JSON
-    inventoryArray = inventoryArray.filter(inventory => inventory.warehouseID !== id)
-    inventoryModel.saveAll(inventoryArray);
+    return res.status(200).json(updatedWarehouse);
+  } catch (error) {
+    return sendServerError(res, error);
   }
+};
 
-  res.status(202).send({ message: "Warehouse and it's inventory items deleted successfully" })
-}
+exports.deleteById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [warehouses, inventoryItems] = await Promise.all([
+      warehouseModel.getAll(),
+      inventoryModel.getAll(),
+    ]);
+    const warehouseIndex = warehouses.findIndex((warehouse) => warehouse.id === id);
 
+    if (warehouseIndex === -1) {
+      return sendNotFound(res, "Warehouse");
+    }
 
+    const updatedWarehouses = warehouses.filter((warehouse) => warehouse.id !== id);
+    const updatedInventory = inventoryItems.filter((item) => item.warehouseID !== id);
+
+    await Promise.all([
+      warehouseModel.saveAll(updatedWarehouses),
+      inventoryModel.saveAll(updatedInventory),
+    ]);
+
+    return res.status(200).json({
+      message: "Warehouse and its inventory items deleted successfully",
+    });
+  } catch (error) {
+    return sendServerError(res, error);
+  }
+};

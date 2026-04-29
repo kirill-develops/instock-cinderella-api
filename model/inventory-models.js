@@ -1,14 +1,13 @@
-const fs = require("fs");
+const fs = require("fs/promises");
+const path = require("path");
 
-const filePath = './data/inventories.json';
+const filePath = path.join(__dirname, "..", "data", "inventories.json");
 
-// function to get videos from JSON file
-exports.getAll = () => {
-  const inventoryArr = fs.readFileSync(filePath);
-  return JSON.parse(inventoryArr);
-}
+exports.getAll = async () => {
+  const inventoryData = await fs.readFile(filePath, "utf-8");
+  return JSON.parse(inventoryData);
+};
 
-// function to save video arr to JSON file
-exports.saveAll = (inventoryArr) => {
-  fs.writeFileSync(filePath, JSON.stringify(inventoryArr))
-}
+exports.saveAll = async (inventory) => {
+  await fs.writeFile(filePath, JSON.stringify(inventory, null, 2));
+};
