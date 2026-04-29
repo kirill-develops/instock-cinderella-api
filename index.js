@@ -1,28 +1,39 @@
-// require('dotenv').config();
+// require("dotenv").config();
 const express = require("express");
 const app = express();
-const helmet = require('helmet');
-const cors = require('cors');
+const helmet = require("helmet");
+const cors = require("cors");
 
 const PORT = process.env.PORT || 8080;
+const corsOrigins = process.env.CORS_ORIGINS
+   ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+   : null;
+const corsOptions = corsOrigins?.length
+   ? { origin: corsOrigins }
+   : { origin: true };
 
-//to access request.body in our POST requests
-app.use(express.json());
-
+app.disable("x-powered-by");
+app.use(express.json({ limit: "1mb" }));
 app.use(helmet());
+app.use(cors(corsOptions));
 
-// enable cors
-app.use(cors({ origin: true }));
+const warehousesRoutes = require("./routes/warehouses-routes");
+const inventoryRoutes = require("./routes/inventory-routes");
 
-//Routes
-const warehousesRoutes = require('./routes/warehouses-routes');
-app.use('/warehouses', warehousesRoutes);
+app.use("/warehouses", warehousesRoutes);
+app.use("/inventory", inventoryRoutes);
 
-const inventoryRoutes = require('./routes/inventory-routes');
-app.use('/inventory', inventoryRoutes);
+app.use((_req, res) => {
+   return res.status(404).json({ message: "Route not found" });
+});
 
-// Listening
+app.use((err, _req, res, _next) => {
+   console.error(err);
+   return res.status(err.status || 500).json({
+      message: err.status ? err.message : "Internal server error",
+   });
+});
+
 app.listen(PORT, () => {
-    console.log("Server running on port "
-        + PORT)
+   console.log(`Server running on port ${PORT}`);
 });
